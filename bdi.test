@@ -18,12 +18,17 @@ LOOPS=${LOOPS:-${loops}}
 # create a pattern file
 dd if=/dev/urandom of=${PATTERN} bs=${BS} count=1 iflag=fullblock 2>/dev/null
 
-cat << eof
-Sample pattern md5sum = $(md5sum ${PATTERN})
-eof
+MD5_TEST=$(md5sum ${PATTERN} | cut -d " " -f1) 
+echo "Sample pattern md5sum = ${MD5_TEST}"
 
 # write/verify test
 for i in $(seq 0 ${LOOPS});do
 dd of=/dev/${BD} if=${PATTERN} bs=${BS} count=1 seek=${i} 2>/dev/null
-dd if=/dev/${BD} bs=${BS} count=1 skip=${i} 2>/dev/null | md5sum
+MD5_CURRENT=`dd if=/dev/${BD} bs=${BS} count=1 skip=${i} 2>/dev/null | md5sum | cut -d " " -f1`
+if [ "$MD5_CURRENT" = "$MD5_TEST" ]; then
+    echo "Writing chunk ${i}, md5 test passed"
+else
+    echo "Writing chunk ${i}, md5 test failed (writen=${MD5_TEST}, read=${MD5_CURRENT})"
+    exit -1
+fi
 done
